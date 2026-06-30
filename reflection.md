@@ -5,12 +5,22 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+- there is only one user for this version where, the user can have multiple pets, each pet can then have multiple tasks. where each task is categorized and given a priority order which is then used to make a task schedule for the user
+
 - What classes did you include, and what responsibilities did you assign to each?
+  Owner Class:
+  Pet Class:
+  Pet Task Class:
 
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+Yes, it did change I removed 2 functions from init design:
+
+ScheduledTask The indirection of wrapping a PetTask with time slots is not needed yet. DailyPlan will hold an ordered list of PetTask objects directly; time display can be computed on-the-fly when rendering.
+Frequency (enum) Recurring task frequency adds complexity to is_due_today() without a task history mechanism to back it. Removed entirely for v1; PetTask.is_recurring can stay as a bool if needed, but the Frequency enum is dropped.
 
 ---
 
