@@ -81,14 +81,13 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
-| Feature           | Method(s) | Notes                             |
-| ----------------- | --------- | --------------------------------- |
-| Task sorting      |           | e.g., by priority, duration       |
-| Filtering         |           | e.g., skip tasks if time runs out |
-| Conflict handling |           | e.g., overlapping time slots      |
-| Recurring tasks   |           | e.g., daily vs. weekly            |
+| Feature           | Method(s) | Notes |
+| ----------------- | --------- | ----- |
+| Task sorting | `Scheduler.sort_by_time_and_priority()` | Primary sort by time slot (morning → midday → evening → anytime), then descending priority (high → medium → low), then task-type criticality (medication before feed, walk, grooming, enrichment, other). A simpler `Scheduler.sort_by_priority()` is also available for priority-only ordering. |
+| Filtering by pet | `Scheduler.filter_by_pet(tasks, pet_name)` | Returns only tasks whose `pet_name` matches the given string; useful for showing a single pet's workload. |
+| Filtering by status | `Scheduler.filter_by_status(tasks, completed)` | Returns tasks matching the given completion state (`False` = incomplete, `True` = done). `generate_plan()` calls this to exclude already-completed tasks before building the schedule. |
+| Conflict detection | `Scheduler.filter_by_time(tasks)` | Greedy scheduler that tracks two budgets: the owner's total daily minutes (`available_minutes_per_day`) and per-slot capacities (morning 180 min, midday/evening 120 min each). Any task that would exceed either cap is moved to the conflict list with an explanatory reason string and surfaced in `DailyPlan.display()` under "Not scheduled". |
+| Recurring tasks | `PetTask.recurring`, `PetTask.reset()`, `Pet.reset_recurring_tasks()` | Each `PetTask` carries a `recurring` boolean (defaults to `True`). Calling `PetTask.reset()` clears `is_complete` only when `recurring` is `True`, leaving one-off tasks permanently done. `Pet.reset_recurring_tasks()` iterates all tasks and calls `reset()` on each, preparing the pet's roster for the next day's plan. |
 
 ## 📸 Demo Walkthrough
 
