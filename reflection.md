@@ -8,9 +8,11 @@
 - there is only one user for this version where, the user can have multiple pets, each pet can then have multiple tasks. where each task is categorized and given a priority order which is then used to make a task schedule for the user
 
 - What classes did you include, and what responsibilities did you assign to each?
-  Owner Class:
+
   Pet Class:
   Pet Task Class:
+  Task Schedule Class
+  Task Class
 
 **b. Design changes**
 
@@ -34,7 +36,9 @@ Frequency (enum) Recurring task frequency adds complexity to is_due_today() with
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+- it can only have one user for right now
 - Why is that tradeoff reasonable for this scenario?
+- want to only make a working MVP, can extend to mulit owner later:
 
 ---
 
