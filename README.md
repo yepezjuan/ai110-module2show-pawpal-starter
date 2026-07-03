@@ -65,18 +65,32 @@ Summary: 5 tasks, 75 min total
 
 ## 🧪 Testing PawPal+
 
+Run the full test suite with:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+The 7 tests cover the core scheduling behaviors:
+
+- **Task completion** — `mark_complete()` flips `is_complete` from `False` to `True`
+- **Adding tasks** — `pet.add_task()` grows the pet's task list
+- **Sorting** — `sort_by_time_and_priority()` orders tasks by slot (morning → evening), then by priority and task-type criticality
+- **Recurring tasks** — `reset_recurring_tasks()` clears `is_complete` on recurring tasks so they re-enter the next day's plan
+- **Non-recurring tasks** — one-off tasks stay permanently complete after reset and are excluded from future plans
+- **Slot overflow** — tasks that exceed a time-slot's capacity (e.g., morning cap of 180 min) are moved to the conflict list
+- **Daily budget overflow** — tasks that exceed the owner's total daily minutes are flagged as conflicts
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/juanyepez/Documents/CP-AI-class/ai110-module2show-pawpal-starter
+plugins: anyio-4.13.0
+collected 7 items
+
+tests/test_pawpal.py .......                                             [100%]
+
+============================== 7 passed in 0.03s ===============================
 ```
 
 ## 📐 Smarter Scheduling
