@@ -22,6 +22,17 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Features
+
+- **Slot-aware sorting** — tasks are ordered by time of day (morning → midday → evening → anytime) before priority is considered, so the schedule reads naturally from start to finish.
+- **Priority tie-breaking** — within the same slot, tasks are ranked high → medium → low; ties are broken by task-type criticality (medication is always first, then feed, walk, grooming, enrichment, other).
+- **Conflict detection** — the greedy scheduler tracks two independent budgets: the owner's total daily minutes and each slot's capacity (morning 180 min, midday/evening 120 min each). Any task that busts either cap is moved to a "Not scheduled" conflict list with an explanatory reason string.
+- **Conflict warnings in the UI** — each skipped task surfaces as a labeled `st.warning` in the Streamlit app so the owner knows exactly what was dropped and why.
+- **Status filtering** — `filter_by_status()` separates completed from incomplete tasks; `generate_plan()` uses it to exclude already-done tasks before building today's schedule.
+- **Per-pet filtering** — `filter_by_pet()` can isolate one pet's workload from a shared task list, useful when managing multiple pets.
+- **Daily recurrence** — each `PetTask` carries a `recurring` flag (default `True`). Calling `Pet.reset_recurring_tasks()` clears `is_complete` only on recurring tasks, leaving one-off tasks permanently done so they never re-enter future plans.
+- **Multi-pet scheduling** — `Scheduler` and `DailyPlan` both accept a list of `Pet` objects, so tasks from every pet compete for the same daily time budget and are grouped together in the output.
+
 ## Getting started
 
 ### Setup
@@ -105,12 +116,91 @@ tests/test_pawpal.py .......                                             [100%]
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Streamlit UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The app is divided into two main areas:
 
-**Screenshot or video** _(optional)_: <!-- Insert a screenshot or link to a demo video here -->
+**Task entry panel** — enter owner and pet details (name, species, breed, age), then use the four-column form to set a task title, type, duration, and priority. Click **Add task** to append it to the session. The task list below the form immediately re-sorts by slot and priority using `sort_by_time_and_priority()`, so you can see the scheduling order before generating a plan.
+
+**Schedule panel** — set how many minutes are available today, then click **Generate schedule**. The app creates a `Pet`, attaches all entered tasks, builds a `Scheduler`, and calls `generate_plan()`. Results appear as:
+- Three `st.metric` tiles: scheduled task count, total minutes, and conflict count.
+- Tasks listed under bold slot headers (`MORNING`, `MIDDAY`, `EVENING`, `ANYTIME`).
+- A yellow `st.warning` for each skipped task, showing the task name and the exact reason (e.g., *"exceeds daily time budget"* or *"morning slot full (180 min max)"*).
+
+### Example workflow
+
+1. Enter owner name `Jordan` and pet name `Mochi` (dog, Mixed, age 3).
+2. Add a **Morning walk** — walk, 30 min, high priority.
+3. Add a **Feeding** — feed, 10 min, high priority.
+4. Add a **Grooming** — grooming, 45 min, low priority.
+5. Notice the task list re-orders: Feeding and Morning walk (both morning, high) appear before Grooming (midday, low).
+6. Set available minutes to **35** and click **Generate schedule**.
+7. The metrics show **2 tasks, 40 min** — wait, 30 + 10 = 40, which fits. Grooming (45 min) lands in the conflict warning: *"Mochi: Grooming — exceeds daily time budget"*.
+8. Increase available minutes to **90** and regenerate — all three tasks schedule cleanly, no warnings.
+
+### Key Scheduler behaviors shown
+
+| Behavior | Where you see it |
+|---|---|
+| Slot-aware sort | Task list preview re-orders as you add tasks |
+| Priority tie-breaking | Within the same slot, high-priority tasks always appear first |
+| Daily budget conflict | Yellow warning when total time exceeds the available minutes input |
+| Slot capacity conflict | Yellow warning when a single slot's tasks exceed its cap (morning 180 min, midday/evening 120 min) |
+| Status filtering | Already-completed tasks are excluded from `generate_plan()` automatically |
+| Multi-pet support | Add a second pet and both pets' tasks compete for the same daily budget |
+
+### CLI output (`python main.py`)
+
+```
+=============================================
+  FILTER: Mochi's tasks only
+=============================================
+  ✓ Mochi: Grooming — 45 min [low] (midday)
+  ○ Mochi: Morning walk — 30 min [high] (morning)
+  ○ Mochi: Feeding — 10 min [high] (morning)
+
+=============================================
+  FILTER: incomplete tasks only
+=============================================
+  ○ Mochi: Morning walk — 30 min [high] (morning)
+  ○ Mochi: Feeding — 10 min [high] (morning)
+  ○ Luna: Playtime — 20 min [low] (evening)
+  ○ Luna: Feeding — 10 min [medium] (morning)
+  ○ Luna: Medication — 5 min [high] (morning)
+
+=============================================
+  FILTER: completed tasks only
+=============================================
+  ✓ Mochi: Grooming — 45 min [low] (midday)
+
+=============================================
+  SORTED: all tasks by slot + priority
+=============================================
+  ○ Luna: Medication — 5 min [high] (morning)
+  ○ Mochi: Feeding — 10 min [high] (morning)
+  ○ Mochi: Morning walk — 30 min [high] (morning)
+  ○ Luna: Feeding — 10 min [medium] (morning)
+  ✓ Mochi: Grooming — 45 min [low] (midday)
+  ○ Luna: Playtime — 20 min [low] (evening)
+
+=============================================
+       TODAY'S SCHEDULE
+=============================================
+Daily plan for Mochi & Luna — 2026-07-02
+
+  [MORNING]
+    • ○ Luna: Medication — 5 min [high] (morning)
+    • ○ Mochi: Feeding — 10 min [high] (morning)
+    • ○ Mochi: Morning walk — 30 min [high] (morning)
+    • ○ Luna: Feeding — 10 min [medium] (morning)
+
+  [EVENING]
+    • ○ Luna: Playtime — 20 min [low] (evening)
+
+Total: 75 min
+
+Summary: 5 tasks, 75 min total
+=============================================
+```
+
+Mochi's Grooming task was marked complete before scheduling, so `filter_by_status()` excluded it — it appears in the completed filter but never enters the plan. All five remaining tasks fit within the 90-minute daily budget, so no conflicts are raised.

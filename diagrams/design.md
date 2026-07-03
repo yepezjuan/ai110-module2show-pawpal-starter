@@ -25,47 +25,59 @@
 
 ```mermaid
 classDiagram
-    class Pet {
-        +str name
-        +str species
-        +str breed
-        +int age
-        +list tasks
-        +add_task(task) None
-        +remove_task(task) None
-        +get_tasks() list
-    }
-
     class PetTask {
         +str title
         +str task_type
         +int duration_minutes
         +str priority
+        +str pet_name
+        +bool is_complete
+        +bool recurring
+        +str time_slot
+        +mark_complete() None
+        +reset() None
         +get_summary() str
     }
 
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +int age
+        +list~PetTask~ tasks
+        +add_task(task: PetTask) None
+        +remove_task(task: PetTask) None
+        +get_tasks() list~PetTask~
+        +reset_recurring_tasks() None
+    }
+
     class Scheduler {
-        +Pet pet
+        +list~Pet~ pets
         +int available_minutes_per_day
         +generate_plan() DailyPlan
-        +sort_by_priority(tasks) list
-        +filter_by_time(tasks) list
+        +filter_by_pet(tasks, pet_name) list~PetTask~
+        +filter_by_status(tasks, completed) list~PetTask~
+        +sort_by_time_and_priority(tasks) list~PetTask~
+        +sort_by_priority(tasks) list~PetTask~
+        +filter_by_time(tasks) tuple
     }
 
     class DailyPlan {
-        +Pet pet
+        +list~Pet~ pets
         +str date
-        +list scheduled_tasks
+        +list~PetTask~ scheduled_tasks
+        +list conflicts
         +int total_duration_minutes
-        +add_task(task) None
+        +add_task(task: PetTask) None
+        +add_conflict(task: PetTask, reason: str) None
         +display() str
         +get_summary() str
     }
 
     Pet "1" --> "many" PetTask : has
-    Scheduler --> Pet : uses
+    Scheduler --> "many" Pet : uses
     Scheduler ..> DailyPlan : creates
-    DailyPlan --> Pet : for
+    DailyPlan --> "many" Pet : for
     DailyPlan "1" --> "many" PetTask : contains
 ```
 
@@ -73,36 +85,39 @@ classDiagram
 
 ## Class Details
 
-### `Pet`
-- Holds the pet's basic info and owns a list of `PetTask` objects
-- `add_task` / `remove_task` / `get_tasks` manage the task list
-
 ### `PetTask`
 - `title`: human-readable name (e.g. `"Morning walk"`)
 - `task_type`: plain string — `"walk"`, `"feed"`, `"medication"`, `"grooming"`, `"enrichment"`, `"other"`
 - `duration_minutes`: how long the task takes
 - `priority`: plain string — `"low"`, `"medium"`, or `"high"`
-- `get_summary()`: returns a one-line description, e.g. `"Morning walk — 30 min [high]"`
+- `pet_name`: stamped automatically by `Pet.add_task()`; empty string until attached to a pet
+- `is_complete`: `False` by default; set to `True` by `mark_complete()`
+- `recurring`: if `True`, `reset()` clears `is_complete` so the task re-enters tomorrow's plan
+- `time_slot`: `"morning"`, `"midday"`, `"evening"`, or `"anytime"`; inferred from `task_type` if left blank
+- `mark_complete()`: marks the task done
+- `reset()`: re-enables a recurring task for the next day
+- `get_summary()`: one-line label including completion status, pet name, title, duration, priority, and slot
+
+### `Pet`
+- Holds the pet's basic info and owns a list of `PetTask` objects
+- `add_task` / `remove_task` / `get_tasks` manage the task list
+- `reset_recurring_tasks()`: calls `reset()` on every task to prepare for a new day's plan
 
 ### `Scheduler`
-- Holds the `Pet` and the daily time budget (`available_minutes_per_day`)
-- `generate_plan()` — main entry point; returns a `DailyPlan`
-- `sort_by_priority(tasks)` — sorts tasks high → low using the lookup dict below
-- `filter_by_time(tasks)` — greedily includes tasks until the time budget is exhausted
-
-Priority sort pattern (no enum needed):
-```python
-PRIORITY_ORDER = {"low": 0, "medium": 1, "high": 2}
-
-def sort_by_priority(self, tasks):
-    return sorted(tasks, key=lambda t: PRIORITY_ORDER[t.priority], reverse=True)
-```
+- Holds a **list of `Pet` objects** (supports multiple pets) and the daily time budget
+- `generate_plan()` — main entry point; collects incomplete tasks from all pets, sorts, filters, and returns a `DailyPlan`
+- `filter_by_pet(tasks, pet_name)` — returns only tasks belonging to the named pet
+- `filter_by_status(tasks, completed)` — returns tasks matching the given completion state
+- `sort_by_time_and_priority(tasks)` — sorts by slot (morning first), then descending priority, then task-type criticality
+- `sort_by_priority(tasks)` — sorts by priority only (kept for backward compatibility)
+- `filter_by_time(tasks)` — greedy scheduler; returns `(scheduled_tasks, [(conflict_task, reason), ...])` — tasks that bust the daily budget or a slot's capacity land in the conflicts list
 
 ### `DailyPlan`
-- Holds the `Pet` it was generated for, the date, and the list of `PetTask` objects that fit
-- `total_duration_minutes` tracks the running sum as tasks are added
-- `display()` renders a human-readable schedule
-- `get_summary()` returns a short one-liner (e.g. `"3 tasks, 60 min total"`)
+- Holds the **list of `Pet` objects**, the date, scheduled tasks, conflicts, and running duration total
+- `conflicts`: list of `(PetTask, reason_str)` tuples for tasks that couldn't be scheduled
+- `add_task(task)` / `add_conflict(task, reason)` populate the plan after scheduling
+- `display()` renders a slot-grouped human-readable schedule including any skipped tasks
+- `get_summary()` returns a short one-liner (e.g. `"3 tasks, 60 min total, 1 conflict(s)"`)
 
 ---
 

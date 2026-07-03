@@ -1,43 +1,55 @@
 classDiagram
-    class Pet {
-        +str name
-        +str species
-        +str breed
-        +int age
-        +list tasks
-        +add_task(task) None
-        +remove_task(task) None
-        +get_tasks() list
-    }
-
     class PetTask {
         +str title
         +str task_type
         +int duration_minutes
         +str priority
+        +str pet_name
+        +bool is_complete
+        +bool recurring
+        +str time_slot
+        +mark_complete() None
+        +reset() None
         +get_summary() str
     }
 
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +int age
+        +list~PetTask~ tasks
+        +add_task(task: PetTask) None
+        +remove_task(task: PetTask) None
+        +get_tasks() list~PetTask~
+        +reset_recurring_tasks() None
+    }
+
     class Scheduler {
-        +Pet pet
+        +list~Pet~ pets
         +int available_minutes_per_day
         +generate_plan() DailyPlan
-        +sort_by_priority(tasks) list
-        +filter_by_time(tasks) list
+        +filter_by_pet(tasks, pet_name) list~PetTask~
+        +filter_by_status(tasks, completed) list~PetTask~
+        +sort_by_time_and_priority(tasks) list~PetTask~
+        +sort_by_priority(tasks) list~PetTask~
+        +filter_by_time(tasks) tuple
     }
 
     class DailyPlan {
-        +Pet pet
+        +list~Pet~ pets
         +str date
-        +list scheduled_tasks
+        +list~PetTask~ scheduled_tasks
+        +list conflicts
         +int total_duration_minutes
-        +add_task(task) None
+        +add_task(task: PetTask) None
+        +add_conflict(task: PetTask, reason: str) None
         +display() str
         +get_summary() str
     }
 
     Pet "1" --> "many" PetTask : has
-    Scheduler --> Pet : uses
+    Scheduler --> "many" Pet : uses
     Scheduler ..> DailyPlan : creates
-    DailyPlan --> Pet : for
+    DailyPlan --> "many" Pet : for
     DailyPlan "1" --> "many" PetTask : contains

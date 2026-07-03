@@ -72,8 +72,10 @@ if st.button("Add task"):
     st.session_state.tasks.append(task)
 
 if st.session_state.tasks:
-    st.write("Current tasks:")
-    for t in st.session_state.tasks:
+    st.write("Current tasks (sorted by slot → priority):")
+    preview_scheduler = Scheduler(pets=[], available_minutes_per_day=9999)
+    sorted_preview = preview_scheduler.sort_by_time_and_priority(st.session_state.tasks)
+    for t in sorted_preview:
         st.write(f"- {t.get_summary()}")
 else:
     st.info("No tasks yet. Add one above.")
@@ -95,5 +97,28 @@ if st.button("Generate schedule"):
         st.session_state.plan = plan
 
 if "plan" in st.session_state and st.session_state.plan:
-    st.success(st.session_state.plan.get_summary())
-    st.text(st.session_state.plan.display())
+    plan = st.session_state.plan
+
+    # Summary metrics row
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("Scheduled tasks", len(plan.scheduled_tasks))
+    col_b.metric("Total time (min)", plan.total_duration_minutes)
+    col_c.metric("Conflicts", len(plan.conflicts))
+
+    # Scheduled tasks grouped by time slot
+    if plan.scheduled_tasks:
+        st.markdown("#### Scheduled tasks")
+        current_slot = None
+        for task in plan.scheduled_tasks:
+            if task.time_slot != current_slot:
+                current_slot = task.time_slot
+                st.markdown(f"**{current_slot.upper()}**")
+            st.write(f"  • {task.get_summary()}")
+    else:
+        st.info("No tasks fit within your available time.")
+
+    # Conflict warnings — one st.warning per skipped task
+    if plan.conflicts:
+        st.markdown("#### Not scheduled")
+        for task, reason in plan.conflicts:
+            st.warning(f"**{task.title}** ({task.pet_name}) — {reason}")
