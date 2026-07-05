@@ -70,7 +70,6 @@ In early prompts the agent wanted to develop a Owner class, however I did not wa
 **a. What you tested**
 
 - What behaviors did you test?
-
   - `mark_complete()` changes `is_complete` from False to True — verifies the most basic state transition in a task's lifecycle.
   - Adding a task to a `Pet` increases `pet.tasks` count — confirms `add_task()` correctly stores tasks.
   - `sort_by_time_and_priority()` orders tasks by slot first (morning before evening), then by descending priority, then by task-type criticality (medication before feed) — validates the core scheduling ordering logic.
@@ -90,7 +89,6 @@ In early prompts the agent wanted to develop a Owner class, however I did not wa
   I'm fairly confident in the happy path and the two main conflict cases (slot overflow and daily budget overflow). The tests cover the exact constraints the scheduler enforces, so if those fail I'd know immediately. I'm less confident about multi-pet edge cases — the tests use single-pet setups almost exclusively, so subtle bugs in how tasks from different pets interleave in the sorted order could still exist.
 
 - What edge cases would you test next if you had more time?
-
   - Two pets each with tasks that together exactly fill the daily budget — verify no off-by-one causes a false conflict.
   - A task with an unknown `task_type` (e.g. `"swim"`) to confirm `DEFAULT_SLOT` and `TYPE_ORDER` fall back gracefully to `"anytime"` and the lowest sort position.
   - All tasks already complete before `generate_plan()` is called — the resulting plan should be empty with no conflicts.
@@ -104,10 +102,15 @@ In early prompts the agent wanted to develop a Owner class, however I did not wa
 
 - What part of this project are you most satisfied with?
 
+I would say building out a whole app fromt start to finish with my architecture guidance and ai agent as my developer was really fun to experiment with.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
+  make it so that it's possible for different pet owners to store their pet tasks, it also would be cool to shae your pet tasks with say a house sitter who may have pets of their own to take care of or pet sitting multiple houses at the same time.
 
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+The speed at which things can be developed is scaringly fast. the main concern is building the correct thing. if that is not decided properly you build extremely fast, but be building the wrong things.
